@@ -1,3 +1,3 @@
-from smartdict.dict_compiler import parse
+from smartdict.dict_compiler import parse, DictCompiler
 
-__all__ = [parse]
+__all__ = [parse, DictCompiler]

@@ -17,6 +17,5 @@ setup(
     author_email='i@6-79.cn',
     platforms='any',
     packages=find_packages(),
-    install_requires=[
-    ],
+    install_requires=[],
 )

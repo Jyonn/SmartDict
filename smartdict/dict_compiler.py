@@ -21,6 +21,11 @@ class DictCompiler:
         for k in path:
             if isinstance(v, list) or isinstance(v, tuple):
                 k = int(k)
+                if len(v) < k:
+                    raise KeyError(f'array out of bound (index = {k}) when retrieving value')
+            else:
+                if k not in v:
+                    raise KeyError(f'key ({k}) not exist when retrieving value')
             v = v[k]
         return v
 
@@ -84,7 +89,7 @@ class DictCompiler:
         return new_l
 
     def _process_tuple(self, path: list, t: tuple):
-        return tuple(self._process_list(path, t))
+        return tuple(self._process_list(path, list(t)))
 
     def _process_dict(self, path: list, d: dict):
         for k in d:
