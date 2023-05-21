@@ -104,7 +104,7 @@ class DictCompiler:
         if path in self.circle:
             v = self.circle[path]
             if isinstance(v, self.InCircle):
-                raise ValueError('Dict references are in circle')
+                raise ValueError(f'Dict references are in circle, path = {path}')
             return v
 
         full_value = self._process_full_ref(path, s)
