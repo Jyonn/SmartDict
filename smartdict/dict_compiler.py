@@ -15,6 +15,9 @@ class CircleDict:
     def __contains__(self, item):
         return item in self.d
 
+    def keys(self):
+        return self.d.keys()
+
 
 class DictCompiler:
     p = re.compile('\\${(.*?)}')
@@ -91,9 +94,16 @@ class DictCompiler:
             return self.NotFound
 
         full_ref = match.group(1)
+
+        if path in self.circle:
+            v = self.circle[path]
+            if isinstance(v, self.InCircle):
+                raise ValueError(f'Dict references are in circle, circle = {self.circle.keys()}')
+            return v
+
         self.circle[path] = self.InCircle()
         value = self._get_value(full_ref)
-        value = self._process(path.split('.'), value)
+        value = self._process([], value)
         self.circle[path] = value
         return value
 
@@ -104,7 +114,7 @@ class DictCompiler:
         if path in self.circle:
             v = self.circle[path]
             if isinstance(v, self.InCircle):
-                raise ValueError(f'Dict references are in circle, path = {path}')
+                raise ValueError(f'Dict references are in circle, circle = {self.circle.keys()}')
             return v
 
         full_value = self._process_full_ref(path, s)
@@ -150,13 +160,8 @@ def parse(d: dict):
 
 if __name__ == '__main__':
     d = dict(
-        a='${b.v.1}+1',
-        b='${c}$',
-        c=dict(
-            __l=23,
-            v=('sorry', 'good', 'ok'),
-            m='${c.__l}'
-        )
+        a='${b}$',
+        b='${a}$',
     )
     # d = [1,2,'${0}$']
 

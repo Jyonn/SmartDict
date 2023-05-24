@@ -6,7 +6,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='smartdict',
-    version='0.0.6',
+    version='0.0.7',
     keywords=['dict', 'refer'],
     description='a string-based refdict',
     long_description=long_description,
