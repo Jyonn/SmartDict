@@ -1,8 +1,16 @@
 # SmartDict
 
+
 ## Usage
 
 - String as references of another item
+
+## Updates
+
+### v0.1.0
+
+- ChatGPT is used to refine the codes, making it more readable and maintainable.
+- New Feature: reference supports default value! `${key:default_value}`
 
 ## Install 
 

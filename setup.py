@@ -6,13 +6,13 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='smartdict',
-    version='0.0.7',
+    version='0.1.0',
     keywords=['dict', 'refer'],
     description='a string-based refdict',
     long_description=long_description,
     long_description_content_type='text/markdown',
     license='MIT Licence',
-    url='https://github.com/Jyonn/SmartDict',
+    url='https://github.com/Jyonn/smartdict',
     author='Jyonn Liu',
     author_email='i@6-79.cn',
     platforms='any',
