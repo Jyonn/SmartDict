@@ -31,6 +31,10 @@ class DictReferenceResolver:
         """Marker class for no full-reference match."""
         pass
 
+    class NoDefault:
+        """Marker class for no default value."""
+        pass
+
     def __init__(self, data: dict):
         self.data = copy.deepcopy(data)  # Deep copy original data
         self.circle = {}  # Tracks resolution status
@@ -151,7 +155,7 @@ class DictReferenceResolver:
 
         # 如果目标路径已在 InCircle，说明真正的循环
         if path_part in self.circle and isinstance(self.circle[path_part], self.InCircle):
-            if default_val is not None:
+            if default_val is not self.NoDefault:
                 return default_val
             raise CircularReferenceError(f"Circular reference at path '{path_part}'")
 
@@ -167,7 +171,7 @@ class DictReferenceResolver:
             return val
         except (InvalidPathError, CircularReferenceError):
             # 如果有默认值，就返回默认值，否则抛出异常
-            if default_val is not None:
+            if default_val is not self.NoDefault:
                 return default_val
             raise
 
@@ -176,7 +180,7 @@ class DictReferenceResolver:
         e.g. 'b:3' -> ('b', 3), 'b' -> ('b', None), 'b:hello' -> ('b', 'hello')
         """
         if ':' not in ref_str:
-            return ref_str.strip(), None
+            return ref_str.strip(), self.NoDefault
 
         path_part, default_part = ref_str.split(':', 1)
         path_part = path_part.strip()
@@ -282,7 +286,7 @@ if __name__ == '__main__':
 
     # 3) 带默认值
     d3 = {
-        'a': '${b:999}$'
+        'a': '${b:null}$'
     }
     print(parse(d3))  # {'a': 999} because b not found
 
