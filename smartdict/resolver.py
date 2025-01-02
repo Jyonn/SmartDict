@@ -191,6 +191,8 @@ class DictReferenceResolver:
             return True
         if s == 'false':
             return False
+        if s == 'null':
+            return None
 
         try:
             return int(s)

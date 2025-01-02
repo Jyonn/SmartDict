@@ -6,9 +6,9 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='smartdict',
-    version='0.1.0',
-    keywords=['dict', 'refer'],
-    description='a string-based refdict',
+    version='0.1.1',
+    keywords=['dict', 'reference'],
+    description='A reference resolver for nested dictionaries that supports default values, partial references, and circular dependency detection.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     license='MIT Licence',
