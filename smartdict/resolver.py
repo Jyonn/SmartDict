@@ -1,304 +1,246 @@
-import copy
 import re
+from typing import Any
 
 
-class CircularReferenceError(Exception):
+class CircularReferenceError(ReferenceError):
     """Raised when a circular reference is detected."""
     pass
 
 
-class InvalidPathError(Exception):
-    """Raised when an invalid path or index is accessed."""
-    pass
+############################################
+# 1) Regex to specifically determine if the entire string is a reference
+############################################
+FULL_REF_PATTERN = re.compile(
+    r'^('  # Start capturing group
+    r'\${([^}:]+(?:\.[^}:]+)*)(?::([^}]+))?}'  # \${ ref_path : default? }
+    r'(\$)?'  # Optional trailing $
+    r'|'  # OR
+    r'\$([^$:]+(?:\.[^$:]+)*)(?::([^$]+))?\$'  # \$ ref_path : default? \$
+    r')$'  # End capturing group
+)
+
+############################################
+# 2) Regex for "partial replacement"
+#    Matches all sub-references within the text
+############################################
+PARTIAL_REF_PATTERN = re.compile(
+    r'(\${([^}:]+(?:\.[^}:]+)*)(?::([^}]+))?})'
+    r'|(\$([^$:]+(?:\.[^$:]+)*)(?::([^$]+))?\$)'
+)
 
 
-class DictReferenceResolver:
+def parse(data: Any) -> Any:
     """
-    Recursively resolves references of the form:
-      - ${path} or ${path}$,
-      - optionally with a default value, e.g. ${path:default} or ${path:default}$.
-    Prevents true circular dependencies. E.g. if a -> b -> a, it raises CircularReferenceError.
+    Parses internal references within any data structure (dict, list, or scalar).
+    Returns a new structure with all references resolved. Raises CircularReferenceError on circular references.
     """
+    return _resolve(data, data, resolving_refs=set(), path="<root>")
 
-    PARTIAL_REF_REGEX = re.compile(r'\${(.*?)}')
-    FULL_REF_REGEX = re.compile(r'\${(.*?)}\$')
 
-    class InCircle:
-        """Marker class to indicate that a path is currently being resolved."""
-        pass
+def _resolve(
+        node: Any,
+        root_data: Any,
+        resolving_refs: set,
+        path: str
+) -> Any:
+    """Recursively resolves references within the node."""
+    if isinstance(node, dict):
+        resolved = {}
+        for k, v in node.items():
+            resolved_key = _resolve_string(k, root_data, resolving_refs, f"{path}.<key>")
+            child_path = f"{path}.{k}"
+            resolved[resolved_key] = _resolve(v, root_data, resolving_refs, child_path)
+        return resolved
 
-    class NotFound:
-        """Marker class for no full-reference match."""
-        pass
+    elif isinstance(node, list):
+        resolved_list = []
+        for i, item in enumerate(node):
+            child_path = f"{path}[{i}]"
+            resolved_list.append(_resolve(item, root_data, resolving_refs, child_path))
+        return resolved_list
 
-    class NoDefault:
-        """Marker class for no default value."""
-        pass
+    elif isinstance(node, str):
+        return _resolve_string(node, root_data, resolving_refs, path)
 
-    def __init__(self, data: dict):
-        self.data = copy.deepcopy(data)  # Deep copy original data
-        self.circle = {}  # Tracks resolution status
+    else:
+        # int / float / bool / None / ...
+        return node
 
-    def resolve(self):
-        """Public method to parse and return the resolved structure."""
-        return self._process_value([], self.data)
 
-    def _process_value(self, path_list: list, value):
-        """
-        Dispatch based on value's type:
-         - dict: process each key-value
-         - list/tuple: process each element
-         - str: attempt to parse references
-         - other: return as is
-        """
-        if isinstance(value, dict):
-            return self._process_dict(path_list, value)
-        elif isinstance(value, (list, tuple)):
-            return self._process_sequence_items(path_list, value)
-        elif isinstance(value, str):
-            # 'path_list' indicates where this string is located in the data
-            caller_path = '.'.join(path_list)
-            return self._process_string(caller_path, value)
+def _resolve_string(
+        text: str,
+        root_data: Any,
+        resolving_refs: set,
+        path: str,
+) -> Any:
+    """
+    Determines if the entire string is a "full reference" (with an optional `$`).
+    If so, returns the resolved original type (e.g., int).
+    Otherwise, treats it as a string with partial references and performs in-place replacements, returning a string.
+    """
+    # 1) First, check if FULL_REF_PATTERN matches the entire string
+    m_full = FULL_REF_PATTERN.match(text)
+    if m_full:
+        # If the entire string is a complete reference
+        # Group order as per FULL_REF_PATTERN
+        ref_path_curly = m_full.group(2)  # Internal path within \${...}
+        default_curly = m_full.group(3)    # \${...:default}
+        trailing_dollar = m_full.group(4)  # Optional trailing $
+        ref_path_dollar = m_full.group(5)  # Internal path within $...$
+        default_dollar = m_full.group(6)    # $...:default$
+
+        if ref_path_curly is not None:
+            ref_path = ref_path_curly
+            default_value = default_curly
         else:
-            return value
+            ref_path = ref_path_dollar
+            default_value = default_dollar
 
-    def _process_dict(self, path_list: list, d: dict):
-        """Recursively process each key-value pair in the dictionary."""
-        for k in list(d.keys()):
-            d[k] = self._process_value(path_list + [k], d[k])
-        return d
+        return _lookup_ref(ref_path, default_value, root_data, resolving_refs, path)
 
-    def _process_sequence_items(self, path_list: list, seq):
-        """Unified handler for list and tuple."""
-        is_tuple = isinstance(seq, tuple)
-        seq_list = list(seq)  # convert to list
-        for i, val in enumerate(seq_list):
-            seq_list[i] = self._process_value(path_list + [str(i)], val)
-        return tuple(seq_list) if is_tuple else seq_list
+    # 2) Otherwise, perform "partial replacement"
+    matches = list(PARTIAL_REF_PATTERN.finditer(text))
+    if not matches:
+        return text  # No references found, return as-is
 
-    # ------------------------------------------------------------------
-    #  重点改动：不对 'caller_path' 标记 InCircle，而只缓存结果
-    # ------------------------------------------------------------------
-    def _process_string(self, caller_path: str, s: str):
-        """
-        Resolve references in the string 's'.
-        'caller_path' is just a label where this string is located.
-        """
-        # 如果这个字符串已经解析过，直接返回缓存
-        if caller_path in self.circle:
-            cached_value = self.circle[caller_path]
-            if isinstance(cached_value, self.InCircle):
-                # 这里表示该字符串本身还在处理中，但并不一定是循环
-                # 通常若是完整引用的 target path == caller_path 才是循环
-                # 对于 'a' -> 'b' 不应报错
-                # 因简化起见，如果真的担心出现 a->a 的状况，可以再做特殊处理
-                pass
-            return cached_value
+    result_parts = []
+    last_end = 0
+    for m in matches:
+        start_idx = m.start()
+        end_idx = m.end()
+        # Add the original text before this reference
+        result_parts.append(text[last_end:start_idx])
 
-        # 暂不将 caller_path 标记为 InCircle，避免误报循环
-        # 仅在结束时缓存解析结果
+        # group(2) = internal path within \${path}
+        # group(3) = default within \${path:default}
+        # group(5) = internal path within $path$
+        # group(6) = default within $path:default$
+        if m.group(1):  # \${...} form
+            ref_path = m.group(2)
+            default_value = m.group(3)
+        else:  # $...$ form
+            ref_path = m.group(5)
+            default_value = m.group(6)
 
-        # 1) 如果整段字符串是一个完整引用 (e.g. ${foo}$ or ${foo:default}$)
-        full_val = self._process_full_reference(s)
-        if full_val is not self.NotFound:
-            # 缓存结果
-            self.circle[caller_path] = full_val
-            return full_val
+        ref_value = _lookup_ref(ref_path, default_value, root_data, resolving_refs, path)
+        # Treat partial replacements as string concatenation
+        result_parts.append(str(ref_value))
 
-        # 2) 否则处理部分引用
-        partial_val = self._process_partial_references(s)
-        self.circle[caller_path] = partial_val
-        return partial_val
+        last_end = end_idx
 
-    def _process_full_reference(self, s: str):
-        """If 's' is a full reference like ${...}$, resolve it; otherwise return NotFound."""
-        match = self.FULL_REF_REGEX.fullmatch(s)
-        if not match:
-            return self.NotFound
+    # Add the remaining text after the last reference
+    result_parts.append(text[last_end:])
 
-        ref_str = match.group(1)
-        return self._resolve_reference(ref_str)
-
-    def _process_partial_references(self, s: str):
-        """Handle zero or more partial references in the string (e.g. foo_${bar=3}_baz)."""
-        spans = [m.span() for m in self.PARTIAL_REF_REGEX.finditer(s)]
-        if not spans:
-            return s  # no reference found
-
-        result_parts = []
-        pos = 0
-        for start, end in spans:
-            # text before ${...}
-            result_parts.append(s[pos:start])
-
-            ref_str = s[start + 2:end - 1]  # the content inside ${ }
-            ref_val = self._resolve_reference(ref_str)
-
-            # Convert the resolved value to string
-            result_parts.append(str(ref_val))
-            pos = end
-
-        # remaining text
-        result_parts.append(s[pos:])
-        return ''.join(result_parts)
-
-    # ------------------------------------------------------------------
-    #  仅给 "目标路径" 打 InCircle 标记
-    # ------------------------------------------------------------------
-    def _resolve_reference(self, ref_str: str):
-        """
-        Resolve a reference that may contain :default, e.g. 'b:3'.
-        We parse 'ref_path' and 'default_val', then try to get the real value.
-        If 'ref_path' was not found or is truly in circle, fallback to default_val (if any).
-        """
-        path_part, default_val = self._parse_ref_path_and_default(ref_str)
-
-        # 如果目标路径已在 InCircle，说明真正的循环
-        if path_part in self.circle and isinstance(self.circle[path_part], self.InCircle):
-            if default_val is not self.NoDefault:
-                return default_val
-            raise CircularReferenceError(f"Circular reference at path '{path_part}'")
-
-        # 否则先将目标路径标记为 InCircle
-        self.circle[path_part] = self.InCircle()
-
-        try:
-            val = self._get_value_by_path(path_part)
-            # val 可能还是个字符串，继续处理
-            val = self._process_value([], val)
-            # 解析完成后缓存目标路径的结果
-            self.circle[path_part] = val
-            return val
-        except (InvalidPathError, CircularReferenceError):
-            # 如果有默认值，就返回默认值，否则抛出异常
-            if default_val is not self.NoDefault:
-                return default_val
-            raise
-
-    def _parse_ref_path_and_default(self, ref_str: str):
-        """
-        e.g. 'b:3' -> ('b', 3), 'b' -> ('b', None), 'b:hello' -> ('b', 'hello')
-        """
-        if ':' not in ref_str:
-            return ref_str.strip(), self.NoDefault
-
-        path_part, default_part = ref_str.split(':', 1)
-        path_part = path_part.strip()
-        default_part = default_part.strip()
-
-        # 简单尝试转 int/float
-        default_val = self._try_parse_scalar(default_part)
-        return path_part, default_val
-
-    def _try_parse_scalar(self, s: str):
-        if s == 'true':
-            return True
-        if s == 'false':
-            return False
-        if s == 'null':
-            return None
-
-        try:
-            return int(s)
-        except ValueError:
-            pass
-        try:
-            return float(s)
-        except ValueError:
-            pass
-        return s
-
-    def _get_value_by_path(self, dotted_path: str):
-        """Traverse self.data according to a.b.0, etc."""
-        parts = dotted_path.split('.')
-        cur = self.data
-        full_path_list = []
-
-        for p in parts:
-            full_path_list.append(p)
-            path_str = '.'.join(full_path_list)
-
-            if isinstance(cur, dict):
-                if p not in cur:
-                    raise InvalidPathError(f"Key '{p}' not found at '{path_str}' (full: '{dotted_path}')")
-                cur = cur[p]
-            elif isinstance(cur, (list, tuple)):
-                # interpret p as index
-                try:
-                    idx = int(p)
-                except ValueError:
-                    raise InvalidPathError(f"Invalid index '{p}' at '{path_str}' (full: '{dotted_path}')")
-                if idx < 0 or idx >= len(cur):
-                    raise InvalidPathError(f"Index out of bounds '{p}' at '{path_str}' (full: '{dotted_path}')")
-                cur = cur[idx]
-            else:
-                raise InvalidPathError(
-                    f"Cannot access '{p}' in a scalar/string at '{path_str}' (full: '{dotted_path}')")
-
-            # 如果拿到的值还是字符串，可能是个完整引用
-            cur = self._resolve_or_break(cur, path_str)
-
-        return cur
-
-    def _resolve_or_break(self, val, path_str: str):
-        """
-        If 'val' is a full-reference string, resolve it right away.
-        If not a full reference, return as is.
-        """
-        while isinstance(val, str):
-            match = self.FULL_REF_REGEX.fullmatch(val)
-            if not match:
-                break
-            new_ref_str = match.group(1)
-            val = self._resolve_reference(new_ref_str)
-        return val
+    return "".join(result_parts)
 
 
-def parse(data: dict):
+
+def _lookup_ref(
+        ref_path: str,
+        default_value: str,
+        root_data: Any,
+        resolving_refs: set,
+        path: str,
+) -> Any:
     """
-    Convenient standalone function that returns the resolved structure.
+    Given a path like "a.x.y" or "my_list.0", retrieves the corresponding value from root_data.
+    Supports:
+      - Dict key access
+      - List index access (if the segment k is purely numeric, it is converted to int for indexing)
+      - Custom classes implementing the __getitem__ method
+    If the key/index is not found and a default_value exists, uses the default_value.
+    If not found and no default is provided, raises ReferenceError.
+    Also checks for circular references.
+
+    New Features:
+      - Automatically parses the type of default values
+      - Supports more types of indexing
     """
-    resolver = DictReferenceResolver(data)
-    return resolver.resolve()
+    # Check if this ref_path is already being resolved to prevent circular references
+    if ref_path in resolving_refs:
+        raise CircularReferenceError(f"Circular reference detected: '{ref_path}' is being referenced again in path '{path}'.")
 
+    resolving_refs.add(ref_path)
 
-# -------------------------
-#         Usage Demo
-# -------------------------
-if __name__ == '__main__':
-    # 1) 没有真正循环的互相引用
-    #    'a' references 'b', but 'b' is just a scalar
-    d1 = {
-        'a': '${b}$',
-        'b': '123',
-    }
-    print(parse(d1))  # Expect: {'a': '123', 'b': '123'}
-
-    # 2) 真正的循环
-    d2 = {
-        'x': '${y}$',
-        'y': '${x}$',
-    }
+    current_value = root_data
+    subkeys = ref_path.split(".") if ref_path else []
     try:
-        print(parse(d2))
-    except CircularReferenceError as e:
-        print("Caught a CircularReferenceError:", e)
+        for k in subkeys:
+            # If current_value is a list and k is purely numeric, convert to int index
+            if isinstance(current_value, list):
+                try:
+                    idx = int(k)
+                except ValueError:
+                    raise TypeError(f"Index '{k}' is not an integer and cannot be used for list.")
+                current_value = current_value[idx]
+                continue
 
-    # 3) 带默认值
-    d3 = {
-        'a': '${b:null}$'
-    }
-    print(parse(d3))  # {'a': 999} because b not found
+            try:
+                current_value = current_value[k]
+            except (KeyError, IndexError, TypeError, AttributeError, ValueError) as e:
+                # If key/index access fails, try using getattr for attribute access
+                try:
+                    current_value = getattr(current_value, k)
+                except AttributeError:
+                    raise KeyError(k) from e
+    except (KeyError, IndexError, TypeError):
+        # If index out of range or key doesn't exist, use default_value if provided, else raise error
+        if default_value is not None:
+            # default_value might contain references and needs to be resolved
+            resolved_default = _resolve(default_value, root_data, resolving_refs, f"{path}(default)")
+            # Attempt to automatically parse the type of default_value
+            resolved_default = _parse_default_value(resolved_default)
+            resolving_refs.remove(ref_path)
+            return resolved_default
+        else:
+            resolving_refs.remove(ref_path)
+            raise ReferenceError(f"Reference '{ref_path}' not found in path '{path}'.")
 
-    # 4) 部分引用 + 默认值
-    d4 = {
-        'foo': 'Hello_${bar:World}_!'
-    }
-    print(parse(d4))  # "Hello_World_!"
+    # If current_value is found, perform another resolve in case it contains references
+    resolved_value = _resolve(current_value, root_data, resolving_refs, f"{path}.{ref_path}")
 
-    # 5) 真循环 + 默认值
-    d5 = {
-        'a': '${b:true}$',
-        'b': '${a:defaultB}$'
-    }
-    print(parse(d5))  # {'a': 'defaultA', 'b': 'defaultB'}
+    resolving_refs.remove(ref_path)
+    return resolved_value
+
+
+def _parse_default_value(value: Any) -> Any:
+    """
+    Automatically parses the type of default values:
+      - "true" / "false" / "null" (case-insensitive)
+      - Integers
+      - Floats
+      - Otherwise, keeps the string as-is
+    """
+    if isinstance(value, str):
+        lower_val = value.lower()
+        if lower_val == "true":
+            return True
+        elif lower_val == "false":
+            return False
+        elif lower_val == "null":
+            return None
+        else:
+            # Attempt to parse as int
+            try:
+                return int(value)
+            except ValueError:
+                pass
+            # Attempt to parse as float
+            try:
+                return float(value)
+            except ValueError:
+                pass
+            # Keep as string
+            return value
+    else:
+        # Non-string types remain unchanged
+        return value
+
+
+if __name__ == '__main__':
+    d = dict(
+        x=1,
+        y='${x}x',
+    )
+    d['z${y}'] = 3
+    print(parse(d))  # {'x': 1, 'y': '1x', 'z1x': 3}

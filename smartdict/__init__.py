@@ -1,5 +1,3 @@
-from smartdict.resolver import parse, DictReferenceResolver
+from smartdict.resolver import parse
 
-DictCompiler = DictReferenceResolver
-
-__all__ = [parse, DictCompiler, DictReferenceResolver]
+__all__ = [parse]
