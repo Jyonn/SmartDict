@@ -1,0 +1,2 @@
+setuptools
+oba>=0.3.0
