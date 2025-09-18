@@ -1,7 +1,7 @@
-import re
 import warnings
 from typing import Any, Dict, Optional, Hashable
 
+from smartdict import function
 from smartdict.path import Path
 from smartdict.resolver import RefStringStatus, ComponentWithValue, RefStringStatusWithValue
 from smartdict.roba import Roba
@@ -16,8 +16,8 @@ class ReferenceNotFoundError(KeyError):
     pass
 
 
-_FULL_REF_PATTERN = re.compile(r"^\$\{([^}]+)}\$$")
-_PARTIAL_REF_PATTERN = re.compile(r"\$\{([^}]+)}")
+# _FULL_REF_PATTERN = re.compile(r"^\$\{([^}]+)}\$$")
+# _PARTIAL_REF_PATTERN = re.compile(r"\$\{([^}]+)}")
 
 
 class SmartDict:
@@ -126,7 +126,7 @@ class SmartDict:
             for key, value in obj.items():
                 key_path = path / f'<k>' / key
                 key_component_value = self.deep_resolve(key, path=key_path)
-                # final_component_value.dict_push(f'<key:{key}>', key_component_value)
+                final_component_value.dict_push(f'<k> / {key}', key_component_value)
                 if not isinstance(key_component_value.final, Hashable):
                     raise TypeError(f'Key object is not hashable: {key_component_value.final}')
                 new_key = key_component_value.final
@@ -225,36 +225,60 @@ class SmartDict:
         return RefStringStatusWithValue(self._cache[ref_string], default_value)
 
     def _resolve_string(self, obj: str, path: Path) -> ComponentWithValue:
-        m_full = _FULL_REF_PATTERN.match(obj)
         component_value = ComponentWithValue(path)
 
-        if m_full:
-            ref_value = self._resolve_ref_string(m_full.group(1), path=path / '$')
+        parts = function.parse_ref_string(obj)
+        if len(parts) == 1 and parts[0].full:
+            ref_string = self._resolve_string(parts[0].part, path).final
+            ref_value = self._resolve_ref_string(ref_string, path=path / '$')
             return component_value.push(ref_value).finalize(obj if ref_value.is_unset else ref_value.value)
 
-        matches = list(_PARTIAL_REF_PATTERN.finditer(obj))
-        if not matches:
-            return component_value.finalize(obj)
+        # m_full = _FULL_REF_PATTERN.match(obj)
+        #
+        # if m_full:
+        #     ref_value = self._resolve_ref_string(m_full.group(1), path=path / '$')
+        #     return component_value.push(ref_value).finalize(obj if ref_value.is_unset else ref_value.value)
 
         result_parts = []
-        last_end = 0
-        for m in matches:
-            start_idx = m.start()
-            end_idx = m.end()
-            # Add the original text before this reference
-            result_parts.append(obj[last_end:start_idx])
 
-            ref_value = self._resolve_ref_string(m.group(1), path=path / '$')
-            current = m.group(0) if ref_value.is_unset else ref_value.value
+        for p in parts:
+            if not p.partial:
+                result_parts.append(p.part)
+                continue
+            ref_string = self._resolve_string(p.part, path).final
+            ref_value = self._resolve_ref_string(ref_string, path=path / '$')
+            current = p.part if ref_value.is_unset else ref_value.value
             component_value.push(ref_value)
 
             result_parts.append(str(current))
 
-            last_end = end_idx
-        # Add the remaining text after the last reference
-        result_parts.append(obj[last_end:])
+        return component_value.finalize(''.join(result_parts))
 
-        return component_value.finalize("".join(result_parts))
+
+        #
+        # matches = list(_PARTIAL_REF_PATTERN.finditer(obj))
+        # if not matches:
+        #     return component_value.finalize(obj)
+        #
+        # result_parts = []
+        # last_end = 0
+        # for m in matches:
+        #     start_idx = m.start()
+        #     end_idx = m.end()
+        #     # Add the original text before this reference
+        #     result_parts.append(obj[last_end:start_idx])
+        #
+        #     ref_value = self._resolve_ref_string(m.group(1), path=path / '$')
+        #     current = m.group(0) if ref_value.is_unset else ref_value.value
+        #     component_value.push(ref_value)
+        #
+        #     result_parts.append(str(current))
+        #
+        #     last_end = end_idx
+        # # Add the remaining text after the last reference
+        # result_parts.append(obj[last_end:])
+        #
+        # return component_value.finalize("".join(result_parts))
 
     @property
     def cache(self):
