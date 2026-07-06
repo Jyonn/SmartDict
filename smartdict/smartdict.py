@@ -1,4 +1,5 @@
 import warnings
+from dataclasses import dataclass
 from typing import Any, Dict, Optional, Hashable
 
 from smartdict import function
@@ -7,13 +8,29 @@ from smartdict.resolver import RefStringStatus, ComponentWithValue, RefStringSta
 from smartdict.roba import Roba
 
 
+@dataclass(frozen=True)
+class UnresolvedReference:
+    path: str
+    reference: str
+
+
 class CircularReferenceError(ReferenceError):
-    """环状引用异常：当解析依赖链条回到自身时抛出。"""
-    pass
+    """Raised when a reference dependency chain loops back to itself."""
+
+    def __init__(self, ref_string: str):
+        self.ref_string = ref_string
+        super().__init__(f'Circular reference detected: {ref_string}')
+
 
 class ReferenceNotFoundError(KeyError):
-    """引用路径不存在：partial=False 时抛出。"""
-    pass
+    """Raised when strict parsing encounters unresolved references."""
+
+    def __init__(self, unresolved: list[UnresolvedReference]):
+        self.unresolved = tuple(unresolved)
+        details = ', '.join(
+            f'{item.path or "<root>"} -> {item.reference}' for item in self.unresolved
+        )
+        super().__init__(f'Unresolved references: {details}')
 
 
 # _FULL_REF_PATTERN = re.compile(r"^\$\{([^}]+)}\$$")
@@ -22,10 +39,13 @@ class ReferenceNotFoundError(KeyError):
 
 class SmartDict:
     def __init__(self, data: Any, partial: bool = False, iterations=1):
+        if iterations <= 0:
+            raise ValueError('`iterations` must be greater than 0')
+
         self._src = data
         self._cache = {}  # type: Dict[str, RefStringStatus]
         self._partial = partial
-        self._iterations = iterations if iterations >= 1 else 100
+        self._iterations = iterations
 
         if self._iterations > 1 and not self._partial:
             self._partial = True
@@ -65,27 +85,27 @@ class SmartDict:
 
         return iter_src
 
-    def _analyse(self, component_value: ComponentWithValue, indent=-1):
+    def _collect_unresolved(self, component_value: ComponentWithValue) -> list[UnresolvedReference]:
+        unresolved = []
+        for value in component_value.unresolved.values():
+            if isinstance(value, ComponentWithValue):
+                unresolved.extend(self._collect_unresolved(value))
+            elif isinstance(value, RefStringStatus):
+                unresolved.append(
+                    UnresolvedReference(
+                        path=component_value.path,
+                        reference=value.ref_string,
+                    )
+                )
+            else:
+                raise RuntimeError(f'unexpected type {type(value)}')
+        return unresolved
+
+    def _analyse(self, component_value: ComponentWithValue):
         if self._partial or not component_value.has_unresolved:
             return
 
-        count = 0
-
-        if indent >= 0:
-            print('  ' * indent + component_value.path + ':')
-
-        for key, value in component_value.unresolved.items():
-            if isinstance(value, ComponentWithValue):
-                self._analyse(value, indent + 1)
-            elif isinstance(value, RefStringStatus):
-                print('  ' * (indent + 1) + str(value))
-            else:
-                raise RuntimeError(f'unexpected type {type(value)}')
-
-            count += 1
-
-        if indent == -1:
-            raise ReferenceNotFoundError(f'Existing {count} unresolved references')
+        raise ReferenceNotFoundError(self._collect_unresolved(component_value))
 
     @staticmethod
     def is_string(obj: Any) -> bool:

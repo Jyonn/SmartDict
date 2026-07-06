@@ -1,13 +1,25 @@
 from smartdict.resolver import RefStringStatus, RefStringStatusWithValue, ComponentWithValue
-from smartdict.smartdict import SmartDict
+from smartdict.smartdict import (
+    SmartDict,
+    CircularReferenceError,
+    ReferenceNotFoundError,
+    UnresolvedReference,
+)
 from smartdict.path import Path
+
+__version__ = "0.4.0"
 
 __all__ = [
     "parse",
+    "partial_parse",
+    "iterative_parse",
     "RefStringStatus",
     "RefStringStatusWithValue",
     "ComponentWithValue",
     "SmartDict",
+    "CircularReferenceError",
+    "ReferenceNotFoundError",
+    "UnresolvedReference",
     "Path"
 ]
 

@@ -1,4 +1,6 @@
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 
 import smartdict
 from smartdict.smartdict import CircularReferenceError, ReferenceNotFoundError
@@ -210,6 +212,20 @@ class SmartDictReferenceResolutionTests(unittest.TestCase):
                 "a": "${missing}",
             })
 
+    def test_missing_reference_error_contains_details_without_stdout_output(self):
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            with self.assertRaises(ReferenceNotFoundError) as ctx:
+                smartdict.parse({
+                    "a": "${missing}",
+                })
+
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(len(ctx.exception.unresolved), 1)
+        self.assertEqual(ctx.exception.unresolved[0].path, "a")
+        self.assertEqual(ctx.exception.unresolved[0].reference, "missing")
+        self.assertIn("a -> missing", str(ctx.exception))
+
     def test_nested_missing_reference_in_dict_raises_in_strict_mode(self):
         with self.assertRaises(ReferenceNotFoundError):
             smartdict.parse({
@@ -223,6 +239,24 @@ class SmartDictReferenceResolutionTests(unittest.TestCase):
                 },
                 "result": "${services.${app.profile}.url}",
             })
+
+    def test_nested_missing_reference_error_contains_leaf_path(self):
+        with self.assertRaises(ReferenceNotFoundError) as ctx:
+            smartdict.parse({
+                "app": {
+                    "profile": "prod",
+                },
+                "services": {
+                    "prod": {
+                        "url": "${config.endpoints.api}",
+                    },
+                },
+                "result": "${services.${app.profile}.url}",
+            })
+
+        self.assertEqual(len(ctx.exception.unresolved), 1)
+        self.assertEqual(ctx.exception.unresolved[0].path, "services → prod → url")
+        self.assertEqual(ctx.exception.unresolved[0].reference, "config.endpoints.api")
 
     def test_cross_nested_cycle_is_reported(self):
         with self.assertRaises(CircularReferenceError):
@@ -253,6 +287,13 @@ class SmartDictReferenceResolutionTests(unittest.TestCase):
                 "a": "${b}$",
                 "b": "${a}$",
             })
+
+    def test_iterations_must_be_greater_than_zero(self):
+        with self.assertRaises(ValueError):
+            smartdict.iterative_parse({
+                "a": "${b}",
+                "b": "ok",
+            }, iterations=0)
 
 
 if __name__ == "__main__":

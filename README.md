@@ -380,6 +380,9 @@ The package also exports:
 
 - `SmartDict`
 - `Path`
+- `CircularReferenceError`
+- `ReferenceNotFoundError`
+- `UnresolvedReference`
 - `RefStringStatus`
 - `RefStringStatusWithValue`
 - `ComponentWithValue`
@@ -403,7 +406,8 @@ python -m build
 - SmartDict recursively parses built-in `dict`, `list`, `tuple`, and `str` values.
 - Intermediate path components can be aliases, including full-match references such as `${config}$`.
 - In strict mode, unresolved references raise `ReferenceNotFoundError`.
-- The current strict-mode implementation also prints unresolved path details to stdout before raising.
+- `ReferenceNotFoundError.unresolved` contains structured unresolved entries with `path` and `reference`.
+- `iterations` must be greater than `0`.
 - If resolved dictionary keys collide, SmartDict raises `KeyError`.
 
 ## License
