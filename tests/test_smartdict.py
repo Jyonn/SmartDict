@@ -5,6 +5,51 @@ from smartdict.smartdict import CircularReferenceError, ReferenceNotFoundError
 
 
 class SmartDictReferenceResolutionTests(unittest.TestCase):
+    def test_object_attribute_can_be_referenced(self):
+        class A:
+            def __init__(self):
+                self.x = "value"
+
+        parsed = smartdict.parse({
+            "a": A(),
+            "b": "${a.x}",
+        })
+
+        self.assertEqual(parsed["b"], "value")
+
+    def test_nested_object_attribute_can_be_referenced(self):
+        class Child:
+            def __init__(self):
+                self.name = "smartdict"
+
+        class Parent:
+            def __init__(self):
+                self.child = Child()
+
+        parsed = smartdict.parse({
+            "a": Parent(),
+            "b": "hello-${a.child.name}",
+        })
+
+        self.assertEqual(parsed["b"], "hello-smartdict")
+
+    def test_object_attribute_and_dict_path_can_be_mixed(self):
+        class Config:
+            def __init__(self):
+                self.profile = "prod"
+
+        parsed = smartdict.parse({
+            "app": Config(),
+            "services": {
+                "prod": {
+                    "url": "https://example.com",
+                },
+            },
+            "result": "${services.${app.profile}.url}",
+        })
+
+        self.assertEqual(parsed["result"], "https://example.com")
+
     def test_dict_subclass_is_resolved_recursively(self):
         class ConfigDict(dict):
             pass
