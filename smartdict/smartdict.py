@@ -89,19 +89,19 @@ class SmartDict:
 
     @staticmethod
     def is_string(obj: Any) -> bool:
-        return obj.__class__ is str
+        return isinstance(obj, str)
 
     @staticmethod
     def is_dict(obj: Any) -> bool:
-        return obj.__class__ is dict
+        return isinstance(obj, dict)
 
     @staticmethod
     def is_list(obj: Any) -> bool:
-        return obj.__class__ is list
+        return isinstance(obj, list)
 
     @classmethod
     def is_tuple(cls: Any, obj: Any) -> bool:
-        return obj.__class__ is tuple
+        return isinstance(obj, tuple)
 
     def deep_resolve(self, obj: Any, path: Path = None) -> ComponentWithValue:
         path = path or Path()
