@@ -115,6 +115,43 @@ class SmartDictReferenceResolutionTests(unittest.TestCase):
                 "a": "${missing}",
             })
 
+    def test_nested_missing_reference_in_dict_raises_in_strict_mode(self):
+        with self.assertRaises(ReferenceNotFoundError):
+            smartdict.parse({
+                "app": {
+                    "profile": "prod",
+                },
+                "services": {
+                    "prod": {
+                        "url": "${config.endpoints.api}",
+                    },
+                },
+                "result": "${services.${app.profile}.url}",
+            })
+
+    def test_cross_nested_cycle_is_reported(self):
+        with self.assertRaises(CircularReferenceError):
+            smartdict.parse({
+                "app": {
+                    "profile": "${services.primary.profile}$",
+                },
+                "services": {
+                    "primary": {
+                        "profile": "${app.profile}$",
+                    },
+                },
+            })
+
+    def test_duplicate_key_after_nested_key_resolution_raises(self):
+        with self.assertRaises(KeyError):
+            smartdict.parse({
+                "aliases": {
+                    "primary": "stable",
+                },
+                "${aliases.primary}": 1,
+                "stable": 2,
+            })
+
     def test_real_cycle_is_still_reported(self):
         with self.assertRaises(CircularReferenceError):
             smartdict.parse({
