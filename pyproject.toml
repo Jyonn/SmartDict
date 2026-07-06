@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "smartdict"
-version = "0.4.2"
+version = "0.5.0"
 description = "A reference resolver for nested dictionaries that supports default values, partial references, and circular dependency detection."
 readme = "README.md"
 requires-python = ">=3.9"

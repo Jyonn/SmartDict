@@ -13,6 +13,7 @@ expressions inside strings, and replaces them with resolved values.
 - Optional explicit full-match syntax with `${path.to.value}$`
 - Nested reference strings such as `${${keys.${env}}}`
 - Default values such as `${missing:42}`, `${missing:fallback}`, or `${missing:[1, 2, 3]}`
+- Optional pipelines such as `${env.PORT:8000|int}` or `${dataset:"unknown"|slug}`
 - Dictionary key generation from references
 - List and tuple index lookup through dotted paths
 - Circular reference detection
@@ -215,7 +216,58 @@ print(parsed["sinkhorn_epsilon"])
 # [1.0, 2.0, 3.0]
 ```
 
-### 5. List and tuple indices
+### 5. Pipelines
+
+SmartDict also supports simple pipelines:
+
+```python
+import smartdict
+
+parsed = smartdict.parse({
+    "dataset": "  My Dataset  ",
+    "save_dir": "${dataset|strip|lower|slug}",
+    "port": "${env.PORT:8000|int}",
+})
+
+print(parsed["save_dir"])
+# my-dataset
+
+print(parsed["port"])
+# 8000
+```
+
+Pipeline execution order is:
+
+1. Resolve the reference
+2. If missing, apply the default value
+3. Run pipeline stages from left to right
+
+Current built-in stages:
+
+- `int`
+- `float`
+- `bool`
+- `json`
+- `lower`
+- `upper`
+- `strip`
+- `slug`
+
+Examples:
+
+```python
+import smartdict
+
+parsed = smartdict.parse({
+    "raw": '{"hello": "world"}',
+    "value": "${raw|json}",
+    "embedding_model": "${sid_embedding_model:${repr_source_model:null}|lower}",
+})
+```
+
+If a pipeline stage fails, SmartDict raises `PipelineStageError`.
+
+### 6. List and tuple indices
 
 Dotted paths can also index built-in sequences.
 
@@ -236,7 +288,7 @@ print(parsed["pick_tuple"])
 # x
 ```
 
-### 6. Dictionary keys can be generated
+### 7. Dictionary keys can be generated
 
 References are resolved in both keys and values.
 
@@ -252,7 +304,7 @@ print(parsed)
 # {'name': 'k', 'k': 1}
 ```
 
-### 7. Referencing custom objects
+### 8. Referencing custom objects
 
 SmartDict resolves path components in this order:
 
@@ -452,6 +504,8 @@ The package also exports:
 - `SmartDict`
 - `Path`
 - `CircularReferenceError`
+- `PipelineStageError`
+- `PipelineStage`
 - `ReferenceNotFoundError`
 - `UnresolvedReference`
 - `RefStringStatus`

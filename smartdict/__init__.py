@@ -2,12 +2,14 @@ from smartdict.resolver import RefStringStatus, RefStringStatusWithValue, Compon
 from smartdict.smartdict import (
     SmartDict,
     CircularReferenceError,
+    PipelineStageError,
     ReferenceNotFoundError,
+    PipelineStage,
     UnresolvedReference,
 )
 from smartdict.path import Path
 
-__version__ = "0.4.2"
+__version__ = "0.5.0"
 
 __all__ = [
     "parse",
@@ -18,7 +20,9 @@ __all__ = [
     "ComponentWithValue",
     "SmartDict",
     "CircularReferenceError",
+    "PipelineStageError",
     "ReferenceNotFoundError",
+    "PipelineStage",
     "UnresolvedReference",
     "Path"
 ]

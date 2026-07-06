@@ -49,11 +49,16 @@ class RefStringStatus:
 
 
 class RefStringStatusWithValue:
-    def __init__(self, status: RefStringStatus, value: Any = RefStringStatus.UNSET_VALUE):
+    def __init__(
+        self,
+        status: RefStringStatus,
+        value: Any = RefStringStatus.UNSET_VALUE,
+        preserve_value: bool = False,
+    ):
         self.status = status
         self.value = value
 
-        if status.is_resolved:
+        if status.is_resolved and not preserve_value:
             self.value = status.value
 
     @property

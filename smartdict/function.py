@@ -12,6 +12,66 @@ class Part:
         return self.part
 
 
+def _scan_top_level_delimiter(s: str, delimiter: str):
+    depth = 0
+    brace_depth = 0
+    quote_char = None
+    escaped = False
+    i = 0
+    n = len(s)
+
+    while i < n:
+        if quote_char is not None:
+            if escaped:
+                escaped = False
+            elif s[i] == '\\':
+                escaped = True
+            elif s[i] == quote_char:
+                quote_char = None
+            i += 1
+            continue
+
+        if s[i] in ('"', "'"):
+            quote_char = s[i]
+            i += 1
+        elif s[i:i + 2] == '${':
+            depth += 1
+            i += 2
+        elif s[i] == '{':
+            brace_depth += 1
+            i += 1
+        elif s[i] == '}':
+            if brace_depth > 0:
+                brace_depth -= 1
+            elif depth > 0:
+                depth -= 1
+            i += 1
+        elif s[i] == delimiter and depth == 0 and brace_depth == 0:
+            return i
+        else:
+            i += 1
+
+    return -1
+
+
+def split_top_level_once(s: str, delimiter: str):
+    idx = _scan_top_level_delimiter(s, delimiter)
+    if idx == -1:
+        return s, None
+    return s[:idx], s[idx + 1:]
+
+
+def split_top_level(s: str, delimiter: str) -> list[str]:
+    parts = []
+    rest = s
+    while True:
+        head, tail = split_top_level_once(rest, delimiter)
+        parts.append(head)
+        if tail is None:
+            return parts
+        rest = tail
+
+
 def parse_ref_string(s: str) -> list[Part]:
     parts = []
     i = 0

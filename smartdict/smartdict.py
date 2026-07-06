@@ -1,4 +1,5 @@
 import json
+import re
 import warnings
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Hashable
@@ -13,6 +14,12 @@ from smartdict.roba import Roba
 class UnresolvedReference:
     path: str
     reference: str
+
+
+@dataclass(frozen=True)
+class PipelineStage:
+    name: str
+    arg: Any = None
 
 
 class CircularReferenceError(ReferenceError):
@@ -32,6 +39,16 @@ class ReferenceNotFoundError(KeyError):
             f'{item.path or "<root>"} -> {item.reference}' for item in self.unresolved
         )
         super().__init__(f'Unresolved references: {details}')
+
+
+class PipelineStageError(ValueError):
+    """Raised when a pipeline stage cannot be applied."""
+
+    def __init__(self, stage: str, value: Any, path: Path, message: str):
+        self.stage = stage
+        self.value = value
+        self.path = str(path)
+        super().__init__(f'Pipeline stage `{stage}` failed at {self.path or "<root>"}: {message}')
 
 
 # _FULL_REF_PATTERN = re.compile(r"^\$\{([^}]+)}\$$")
@@ -196,25 +213,34 @@ class SmartDict:
 
     @staticmethod
     def _split_ref_expression(ref_string: str):
-        depth = 0
-        i = 0
-        n = len(ref_string)
+        ref, default = function.split_top_level_once(ref_string, ':')
+        if default is None:
+            return ref, RefStringStatus.UNSET_VALUE
+        return ref, default
 
-        while i < n:
-            if ref_string[i:i + 2] == '${':
-                depth += 1
-                i += 2
-                continue
-            if ref_string[i] == '}':
-                if depth > 0:
-                    depth -= 1
-                i += 1
-                continue
-            if ref_string[i] == ':' and depth == 0:
-                return ref_string[:i], ref_string[i + 1:]
-            i += 1
+    @staticmethod
+    def _parse_stage_arg(arg: Any) -> Any:
+        if arg is None:
+            return None
+        if isinstance(arg, str) and '${' in arg:
+            return arg
+        return SmartDict._parse_default_value(arg)
 
-        return ref_string, RefStringStatus.UNSET_VALUE
+    def _parse_pipeline_expression(self, expression: str):
+        pieces = function.split_top_level(expression, '|')
+        head = pieces[0]
+        ref_string, default_str = self._split_ref_expression(head)
+
+        stages = []
+        for raw_stage in pieces[1:]:
+            stage_name, stage_arg = function.split_top_level_once(raw_stage, ':')
+            stage_name = stage_name.strip()
+            if not stage_name:
+                raise ValueError(f'Invalid pipeline stage in expression: {expression}')
+            stage_arg = None if stage_arg is None else stage_arg.strip()
+            stages.append(PipelineStage(name=stage_name, arg=self._parse_stage_arg(stage_arg)))
+
+        return ref_string, default_str, stages
 
     @staticmethod
     def _stringify_resolved_part(value: Any, for_ref: bool = False):
@@ -226,6 +252,58 @@ class SmartDict:
             if value is False:
                 return 'false'
         return str(value)
+
+    def _apply_pipeline_stages(self, value: Any, stages: list[PipelineStage], path: Path):
+        current = value
+        for stage in stages:
+            current = self._apply_pipeline_stage(current, stage, path)
+        return current
+
+    @staticmethod
+    def _stage_bool(value: Any):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered == 'true':
+                return True
+            if lowered == 'false':
+                return False
+        raise ValueError(f'cannot convert {value!r} to bool')
+
+    @staticmethod
+    def _stage_slug(value: Any):
+        text = str(value).strip().lower()
+        text = re.sub(r'[^a-z0-9]+', '-', text)
+        return text.strip('-')
+
+    def _apply_pipeline_stage(self, value: Any, stage: PipelineStage, path: Path):
+        name = stage.name
+        try:
+            if name == 'int':
+                return int(value)
+            if name == 'float':
+                return float(value)
+            if name == 'bool':
+                return self._stage_bool(value)
+            if name == 'json':
+                if isinstance(value, str):
+                    return json.loads(value)
+                return value
+            if name == 'lower':
+                return str(value).lower()
+            if name == 'upper':
+                return str(value).upper()
+            if name == 'strip':
+                return str(value).strip()
+            if name == 'slug':
+                return self._stage_slug(value)
+        except Exception as exc:
+            raise PipelineStageError(name, value, path, str(exc)) from exc
+
+        raise PipelineStageError(name, value, path, 'unknown stage')
 
     @staticmethod
     def _get_value(obj: Any, key):
@@ -260,8 +338,12 @@ class SmartDict:
 
         return value
 
-    def _resolve_ref_string(self, ref_string: str, path: Path) -> RefStringStatusWithValue:
-        ref_string, default_str = self._split_ref_expression(ref_string)
+    def _resolve_ref_string(
+        self,
+        ref_string: str,
+        default_str: Any,
+        path: Path,
+    ) -> RefStringStatusWithValue:
         if default_str is RefStringStatus.UNSET_VALUE:
             default_value = RefStringStatus.UNSET_VALUE
         else:
@@ -297,18 +379,27 @@ class SmartDict:
             self._cache[ref_string].resolve(current_value)
         return RefStringStatusWithValue(self._cache[ref_string], default_value)
 
+    def _resolve_reference_expression(self, expression: str, path: Path) -> RefStringStatusWithValue:
+        ref_string, default_str, stages = self._parse_pipeline_expression(expression)
+        ref_value = self._resolve_ref_string(ref_string, default_str, path)
+        if ref_value.is_unset:
+            return ref_value
+
+        final_value = self._apply_pipeline_stages(ref_value.value, stages, path)
+        return RefStringStatusWithValue(ref_value.status, final_value, preserve_value=True)
+
     def _resolve_string(self, obj: str, path: Path, raw_single_ref: bool = False) -> ComponentWithValue:
         component_value = ComponentWithValue(path)
 
         parts = function.parse_ref_string(obj)
         if len(parts) == 1 and parts[0].full:
             ref_string = self._resolve_string(parts[0].part, path, raw_single_ref=True).final
-            ref_value = self._resolve_ref_string(ref_string, path=path / '$')
+            ref_value = self._resolve_reference_expression(ref_string, path=path / '$')
             return component_value.push(ref_value).finalize(obj if ref_value.is_unset else ref_value.value)
 
         if len(parts) == 1 and parts[0].partial:
             ref_string = self._resolve_string(parts[0].part, path, raw_single_ref=True).final
-            ref_value = self._resolve_ref_string(ref_string, path=path / '$')
+            ref_value = self._resolve_reference_expression(ref_string, path=path / '$')
             current = '${' + ref_string + '}' if ref_value.is_unset else ref_value.value
             component_value.push(ref_value)
             if raw_single_ref or obj == '${' + parts[0].part + '}':
@@ -322,7 +413,7 @@ class SmartDict:
                 result_parts.append(p.part)
                 continue
             ref_string = self._resolve_string(p.part, path, raw_single_ref=True).final
-            ref_value = self._resolve_ref_string(ref_string, path=path / '$')
+            ref_value = self._resolve_reference_expression(ref_string, path=path / '$')
             current = '${' + ref_string + '}' if ref_value.is_unset else ref_value.value
             component_value.push(ref_value)
 
