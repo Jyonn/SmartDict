@@ -194,6 +194,20 @@ class SmartDict:
 
         return RefStringStatus.NOTFOUND
 
+    def _resolve_path_component(self, value: Any, path: Path, is_leaf: bool):
+        if is_leaf:
+            return self.deep_resolve(value, path).final
+
+        # Only resolve string aliases for intermediate nodes so we can keep
+        # walking the requested path without eagerly resolving sibling fields.
+        while self.is_string(value):
+            resolved = self.deep_resolve(value, path).final
+            if resolved == value:
+                break
+            value = resolved
+
+        return value
+
     def _resolve_ref_string(self, ref_string: str, path: Path) -> RefStringStatusWithValue:
         if ':' in ref_string:
             ref_string, default_str = ref_string.split(':', 1)
@@ -210,13 +224,17 @@ class SmartDict:
         subkeys = ref_string.split(".") if ref_string else []
         current_value = self._src
         current_path = path
-        for key in subkeys:
+        last_index = len(subkeys) - 1
+        for index, key in enumerate(subkeys):
             current_path = current_path / key
             current_value = self._get_value(current_value, key)
             if current_value is RefStringStatus.NOTFOUND:
                 break
-            component_value = self.deep_resolve(current_value, current_path)
-            current_value = component_value.final
+            current_value = self._resolve_path_component(
+                current_value,
+                current_path,
+                is_leaf=index == last_index,
+            )
 
         if current_value is RefStringStatus.NOTFOUND:
             self._cache[ref_string].unresolve()
