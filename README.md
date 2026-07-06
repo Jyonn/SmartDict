@@ -256,7 +256,7 @@ parsed = smartdict.partial_parse({
 })
 
 print(parsed)
-# {'a': 'missing', 'b': 'pre-missing-post', 'c': '${missing}$'}
+# {'a': '${missing}', 'b': 'pre-${missing}-post', 'c': '${missing}$'}
 ```
 
 ### `smartdict.iterative_parse(obj, iterations=1)`

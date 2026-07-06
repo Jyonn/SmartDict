@@ -265,7 +265,7 @@ class SmartDict:
                 continue
             ref_string = self._resolve_string(p.part, path).final
             ref_value = self._resolve_ref_string(ref_string, path=path / '$')
-            current = p.part if ref_value.is_unset else ref_value.value
+            current = '${' + ref_string + '}' if ref_value.is_unset else ref_value.value
             component_value.push(ref_value)
 
             result_parts.append(str(current))

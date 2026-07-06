@@ -109,6 +109,19 @@ class SmartDictReferenceResolutionTests(unittest.TestCase):
 
         self.assertEqual(parsed, {"a": "ok", "b": "ok", "c": "ok"})
 
+    def test_partial_parse_keeps_unresolved_placeholder_syntax(self):
+        parsed = smartdict.partial_parse({
+            "a": "${missing}",
+            "b": "pre-${missing}-post",
+            "c": "${missing}$",
+        })
+
+        self.assertEqual(parsed, {
+            "a": "${missing}",
+            "b": "pre-${missing}-post",
+            "c": "${missing}$",
+        })
+
     def test_missing_reference_raises_in_strict_mode(self):
         with self.assertRaises(ReferenceNotFoundError):
             smartdict.parse({
