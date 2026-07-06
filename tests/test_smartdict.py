@@ -132,6 +132,40 @@ class SmartDictReferenceResolutionTests(unittest.TestCase):
         self.assertIsNone(parsed["null_value"])
         self.assertEqual(parsed["text_value"], "fallback")
 
+    def test_json_list_default_preserves_native_type(self):
+        parsed = smartdict.parse({
+            "sinkhorn_epsilon": "${sid_sinkhorn_epsilon:[0.0, 0.0, 0.003]}",
+        })
+
+        self.assertEqual(parsed["sinkhorn_epsilon"], [0.0, 0.0, 0.003])
+        self.assertIsInstance(parsed["sinkhorn_epsilon"], list)
+
+    def test_json_dict_default_preserves_native_type(self):
+        parsed = smartdict.parse({
+            "value": '${config:{"hello": "world"}}',
+        })
+
+        self.assertEqual(parsed["value"], {"hello": "world"})
+        self.assertIsInstance(parsed["value"], dict)
+
+    def test_json_dict_default_allows_colons_inside_values(self):
+        parsed = smartdict.parse({
+            "value": '${config:{"hello": "a:b", "url": "https://example.com"}}',
+        })
+
+        self.assertEqual(parsed["value"], {
+            "hello": "a:b",
+            "url": "https://example.com",
+        })
+
+    def test_existing_reference_still_wins_over_json_default(self):
+        parsed = smartdict.parse({
+            "sid_sinkhorn_epsilon": [1.0, 2.0, 3.0],
+            "sinkhorn_epsilon": "${sid_sinkhorn_epsilon:[0.0, 0.0, 0.003]}",
+        })
+
+        self.assertEqual(parsed["sinkhorn_epsilon"], [1.0, 2.0, 3.0])
+
     def test_list_and_tuple_indices_can_be_referenced(self):
         data = {
             "items": ["a", "b"],

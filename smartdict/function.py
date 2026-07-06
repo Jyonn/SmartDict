@@ -20,14 +20,37 @@ def parse_ref_string(s: str) -> list[Part]:
     while i < n:
         if s[i:i + 2] == '${':  # 进入引用
             depth = 1
+            brace_depth = 0
+            quote_char = None
+            escaped = False
             j = i + 2
             while j < n and depth > 0:
-                if s[j:j + 2] == '${':
+                if quote_char is not None:
+                    if escaped:
+                        escaped = False
+                    elif s[j] == '\\':
+                        escaped = True
+                    elif s[j] == quote_char:
+                        quote_char = None
+                    j += 1
+                    continue
+
+                if s[j] in ('"', "'"):
+                    quote_char = s[j]
+                    j += 1
+                elif s[j:j + 2] == '${':
                     depth += 1
                     j += 2
-                elif s[j] == '}':
-                    depth -= 1
+                elif s[j] == '{':
+                    brace_depth += 1
                     j += 1
+                elif s[j] == '}':
+                    if brace_depth > 0:
+                        brace_depth -= 1
+                        j += 1
+                    else:
+                        depth -= 1
+                        j += 1
                 else:
                     j += 1
             if depth != 0:

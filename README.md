@@ -11,7 +11,7 @@ expressions inside strings, and replaces them with resolved values.
 - Inline string interpolation with `${path.to.value}`
 - Full-value replacement with `${path.to.value}$`
 - Nested reference strings such as `${${keys.${env}}}`
-- Default values such as `${missing:42}` or `${missing:fallback}`
+- Default values such as `${missing:42}`, `${missing:fallback}`, or `${missing:[1, 2, 3]}`
 - Dictionary key generation from references
 - List and tuple index lookup through dotted paths
 - Circular reference detection
@@ -150,12 +150,14 @@ print(parsed)
 # }
 ```
 
-Default values are automatically interpreted as:
+Default values are automatically interpreted as JSON when possible:
 
 - `true` / `false` -> `bool`
 - `null` -> `None`
 - integers -> `int`
 - floats -> `float`
+- arrays -> `list`
+- objects -> `dict`
 - anything else -> `str`
 
 Nested default expressions are also supported:
@@ -173,6 +175,23 @@ print(parsed["embedding_model"])
 ```
 
 If both references are missing, the same expression resolves to `None`.
+
+JSON arrays and objects are also valid defaults:
+
+```python
+import smartdict
+
+parsed = smartdict.parse({
+    "sinkhorn_epsilon": "${sid_sinkhorn_epsilon:[0.0, 0.0, 0.003]}",
+    "metadata": '${config:{"hello": "world"}}',
+})
+
+print(parsed["sinkhorn_epsilon"])
+# [0.0, 0.0, 0.003]
+
+print(parsed["metadata"])
+# {'hello': 'world'}
+```
 
 ### 5. List and tuple indices
 

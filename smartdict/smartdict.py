@@ -1,3 +1,4 @@
+import json
 import warnings
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Hashable
@@ -164,33 +165,31 @@ class SmartDict:
     @staticmethod
     def _parse_default_value(value: Any) -> Any:
         """
-        Automatically parses the type of default values:
-          - "true" / "false" / "null" (case-insensitive)
-          - Integers
-          - Floats
-          - Otherwise, keeps the string as-is
+        Automatically parses default values.
+
+        It first attempts JSON parsing so values like `null`, `true`, `false`,
+        numbers, arrays, and objects keep their native Python types.
+        If JSON parsing fails, it falls back to the original loose scalar
+        parsing behavior so bare strings like `fallback` remain supported.
         """
         if isinstance(value, str):
-            lower_val = value.lower()
-            if lower_val == "true":
-                return True
-            elif lower_val == "false":
-                return False
-            elif lower_val == "null":
-                return None
-            else:
-                # Attempt to parse as int
-                try:
-                    return int(value)
-                except ValueError:
-                    pass
-                # Attempt to parse as float
-                try:
-                    return float(value)
-                except ValueError:
-                    pass
-                # Keep as string
-                return value
+            stripped = value.strip()
+            try:
+                return json.loads(stripped)
+            except json.JSONDecodeError:
+                pass
+
+            # Preserve support for unquoted fallback strings and other
+            # non-JSON literals used by existing callers.
+            try:
+                return int(value)
+            except ValueError:
+                pass
+            try:
+                return float(value)
+            except ValueError:
+                pass
+            return value
         else:
             # Non-string types remain unchanged
             return value
