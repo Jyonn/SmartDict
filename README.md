@@ -9,7 +9,8 @@ expressions inside strings, and replaces them with resolved values.
 ## Features
 
 - Inline string interpolation with `${path.to.value}`
-- Full-value replacement with `${path.to.value}$`
+- Native-value resolution for single references such as `${path.to.value}`
+- Optional explicit full-match syntax with `${path.to.value}$`
 - Nested reference strings such as `${${keys.${env}}}`
 - Default values such as `${missing:42}`, `${missing:fallback}`, or `${missing:[1, 2, 3]}`
 - Dictionary key generation from references
@@ -57,9 +58,9 @@ print(parsed["store"])
 
 ## Reference Syntax
 
-### 1. Inline references
+### 1. References
 
-Use `${...}` when the reference is part of a larger string.
+Use `${...}` as the default reference syntax.
 
 ```python
 import smartdict
@@ -72,6 +73,8 @@ parsed = smartdict.parse({
 print(parsed["message"])
 # hello-smartdict
 ```
+
+When `${...}` is part of a larger string, SmartDict performs string interpolation.
 
 When the whole value is a single reference, SmartDict preserves the referenced value type:
 
@@ -87,9 +90,12 @@ print(parsed["selected"])
 # {'debug': True}
 ```
 
-### 2. Full-match references
+This means `${config}`, `${missing:null}`, and `${missing:[1, 2, 3]}` can all resolve to
+native Python values instead of strings.
 
-Use `${...}$` when you want an explicit full-match form.
+### 2. Explicit full-match references
+
+Use `${...}$` when you want to make that intent explicit in config files or examples.
 
 ```python
 import smartdict
@@ -106,8 +112,8 @@ print(parsed["selected"])
 # {'debug': True, 'retries': 3}
 ```
 
-This is useful when the target is a `dict`, `list`, `tuple`, number, boolean, or any other
-non-string value.
+`${...}$` is kept for readability and backward compatibility, but it is no longer the only way
+to get non-string values.
 
 ### 3. Nested reference strings
 
@@ -135,10 +141,10 @@ If a path cannot be found, you can provide a default value with `:`.
 import smartdict
 
 parsed = smartdict.parse({
-    "int_value": "${missing:42}$",
-    "bool_value": "${missing:true}$",
-    "null_value": "${missing:null}$",
-    "text_value": "${missing:fallback}$",
+    "int_value": "${missing:42}",
+    "bool_value": "${missing:true}",
+    "null_value": "${missing:null}",
+    "text_value": "${missing:fallback}",
 })
 
 print(parsed)
@@ -159,6 +165,8 @@ Default values are automatically interpreted as JSON when possible:
 - arrays -> `list`
 - objects -> `dict`
 - anything else -> `str`
+
+Bare fallback strings such as `${missing:fallback}` remain supported for convenience.
 
 Nested default expressions are also supported:
 
@@ -191,6 +199,20 @@ print(parsed["sinkhorn_epsilon"])
 
 print(parsed["metadata"])
 # {'hello': 'world'}
+```
+
+If the primary value already exists, SmartDict keeps that value and ignores the default:
+
+```python
+import smartdict
+
+parsed = smartdict.parse({
+    "sid_sinkhorn_epsilon": [1.0, 2.0, 3.0],
+    "sinkhorn_epsilon": "${sid_sinkhorn_epsilon:[0.0, 0.0, 0.003]}",
+})
+
+print(parsed["sinkhorn_epsilon"])
+# [1.0, 2.0, 3.0]
 ```
 
 ### 5. List and tuple indices
