@@ -73,9 +73,23 @@ print(parsed["message"])
 # hello-smartdict
 ```
 
+When the whole value is a single reference, SmartDict preserves the referenced value type:
+
+```python
+import smartdict
+
+parsed = smartdict.parse({
+    "config": {"debug": True},
+    "selected": "${config}",
+})
+
+print(parsed["selected"])
+# {'debug': True}
+```
+
 ### 2. Full-match references
 
-Use `${...}$` when the whole value should become the referenced object instead of a string.
+Use `${...}$` when you want an explicit full-match form.
 
 ```python
 import smartdict
@@ -143,6 +157,22 @@ Default values are automatically interpreted as:
 - integers -> `int`
 - floats -> `float`
 - anything else -> `str`
+
+Nested default expressions are also supported:
+
+```python
+import smartdict
+
+parsed = smartdict.parse({
+    "repr_source_model": "text-embedding-3-small",
+    "embedding_model": "${sid_embedding_model:${repr_source_model:null}}",
+})
+
+print(parsed["embedding_model"])
+# text-embedding-3-small
+```
+
+If both references are missing, the same expression resolves to `None`.
 
 ### 5. List and tuple indices
 

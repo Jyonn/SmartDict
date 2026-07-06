@@ -7,7 +7,7 @@ from smartdict.smartdict import (
 )
 from smartdict.path import Path
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = [
     "parse",

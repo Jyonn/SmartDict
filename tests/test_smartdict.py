@@ -109,6 +109,14 @@ class SmartDictReferenceResolutionTests(unittest.TestCase):
 
         self.assertEqual(parsed["selected"], {"debug": True})
 
+    def test_single_reference_preserves_native_value_type(self):
+        parsed = smartdict.parse({
+            "config": {"debug": True},
+            "selected": "${config}",
+        })
+
+        self.assertEqual(parsed["selected"], {"debug": True})
+
     def test_default_values_are_cast_to_expected_types(self):
         data = {
             "int_value": "${missing:42}$",
@@ -205,6 +213,38 @@ class SmartDictReferenceResolutionTests(unittest.TestCase):
             "b": "pre-${missing}-post",
             "c": "${missing}$",
         })
+
+    def test_nested_default_expression_can_fall_back_to_other_reference(self):
+        parsed = smartdict.parse({
+            "repr_source_model": "text-embedding-3-small",
+            "embedding_model": "${sid_embedding_model:${repr_source_model:null}}",
+        })
+
+        self.assertEqual(parsed["embedding_model"], "text-embedding-3-small")
+
+    def test_nested_default_expression_can_resolve_to_none(self):
+        parsed = smartdict.parse({
+            "embedding_model": "${sid_embedding_model:${repr_source_model:null}}",
+        })
+
+        self.assertIsNone(parsed["embedding_model"])
+
+    def test_nested_default_expression_prefers_primary_reference(self):
+        parsed = smartdict.parse({
+            "sid_embedding_model": "bge-m3",
+            "repr_source_model": "text-embedding-3-small",
+            "embedding_model": "${sid_embedding_model:${repr_source_model:null}}",
+        })
+
+        self.assertEqual(parsed["embedding_model"], "bge-m3")
+
+    def test_nested_default_expression_preserves_scalar_type(self):
+        parsed = smartdict.parse({
+            "value": "${primary:${fallback:42}}",
+        })
+
+        self.assertEqual(parsed["value"], 42)
+        self.assertIsInstance(parsed["value"], int)
 
     def test_missing_reference_raises_in_strict_mode(self):
         with self.assertRaises(ReferenceNotFoundError):

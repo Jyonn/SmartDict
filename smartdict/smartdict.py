@@ -196,6 +196,39 @@ class SmartDict:
             return value
 
     @staticmethod
+    def _split_ref_expression(ref_string: str):
+        depth = 0
+        i = 0
+        n = len(ref_string)
+
+        while i < n:
+            if ref_string[i:i + 2] == '${':
+                depth += 1
+                i += 2
+                continue
+            if ref_string[i] == '}':
+                if depth > 0:
+                    depth -= 1
+                i += 1
+                continue
+            if ref_string[i] == ':' and depth == 0:
+                return ref_string[:i], ref_string[i + 1:]
+            i += 1
+
+        return ref_string, RefStringStatus.UNSET_VALUE
+
+    @staticmethod
+    def _stringify_resolved_part(value: Any, for_ref: bool = False):
+        if for_ref:
+            if value is None:
+                return 'null'
+            if value is True:
+                return 'true'
+            if value is False:
+                return 'false'
+        return str(value)
+
+    @staticmethod
     def _get_value(obj: Any, key):
         try:
             return obj[key]
@@ -229,11 +262,14 @@ class SmartDict:
         return value
 
     def _resolve_ref_string(self, ref_string: str, path: Path) -> RefStringStatusWithValue:
-        if ':' in ref_string:
-            ref_string, default_str = ref_string.split(':', 1)
-            default_value = self._parse_default_value(default_str)
-        else:
+        ref_string, default_str = self._split_ref_expression(ref_string)
+        if default_str is RefStringStatus.UNSET_VALUE:
             default_value = RefStringStatus.UNSET_VALUE
+        else:
+            if self.is_string(default_str) and '${' in default_str:
+                default_value = self._resolve_string(default_str, path=path, raw_single_ref=True).final
+            else:
+                default_value = self._parse_default_value(default_str)
 
         if ref_string in self._cache:
             if self._cache[ref_string].is_resolving:
@@ -262,20 +298,23 @@ class SmartDict:
             self._cache[ref_string].resolve(current_value)
         return RefStringStatusWithValue(self._cache[ref_string], default_value)
 
-    def _resolve_string(self, obj: str, path: Path) -> ComponentWithValue:
+    def _resolve_string(self, obj: str, path: Path, raw_single_ref: bool = False) -> ComponentWithValue:
         component_value = ComponentWithValue(path)
 
         parts = function.parse_ref_string(obj)
         if len(parts) == 1 and parts[0].full:
-            ref_string = self._resolve_string(parts[0].part, path).final
+            ref_string = self._resolve_string(parts[0].part, path, raw_single_ref=True).final
             ref_value = self._resolve_ref_string(ref_string, path=path / '$')
             return component_value.push(ref_value).finalize(obj if ref_value.is_unset else ref_value.value)
 
-        # m_full = _FULL_REF_PATTERN.match(obj)
-        #
-        # if m_full:
-        #     ref_value = self._resolve_ref_string(m_full.group(1), path=path / '$')
-        #     return component_value.push(ref_value).finalize(obj if ref_value.is_unset else ref_value.value)
+        if len(parts) == 1 and parts[0].partial:
+            ref_string = self._resolve_string(parts[0].part, path, raw_single_ref=True).final
+            ref_value = self._resolve_ref_string(ref_string, path=path / '$')
+            current = '${' + ref_string + '}' if ref_value.is_unset else ref_value.value
+            component_value.push(ref_value)
+            if raw_single_ref or obj == '${' + parts[0].part + '}':
+                return component_value.finalize(current)
+            return component_value.finalize(str(current))
 
         result_parts = []
 
@@ -283,12 +322,12 @@ class SmartDict:
             if not p.partial:
                 result_parts.append(p.part)
                 continue
-            ref_string = self._resolve_string(p.part, path).final
+            ref_string = self._resolve_string(p.part, path, raw_single_ref=True).final
             ref_value = self._resolve_ref_string(ref_string, path=path / '$')
             current = '${' + ref_string + '}' if ref_value.is_unset else ref_value.value
             component_value.push(ref_value)
 
-            result_parts.append(str(current))
+            result_parts.append(self._stringify_resolved_part(current, for_ref=raw_single_ref))
 
         return component_value.finalize(''.join(result_parts))
 
