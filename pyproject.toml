@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smartdict"
+version = "0.3.2"
+description = "A reference resolver for nested dictionaries that supports default values, partial references, and circular dependency detection."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+  { name = "Jyonn Liu", email = "i@6-79.cn" },
+]
+keywords = ["dict", "reference"]
+dependencies = [
+  "oba>=0.3.0",
+]
+classifiers = [
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/Jyonn/smartdict"
+
+[tool.setuptools.packages.find]
+include = ["smartdict*"]
