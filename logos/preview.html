@@ -24,7 +24,6 @@
       margin-top: 10px;
       max-width: 760px;
       line-height: 1.6;
-      color: inherit;
       opacity: 0.82;
     }
     button {
@@ -38,7 +37,7 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: minmax(0, 1fr);
       gap: 18px;
     }
     .card {
@@ -68,6 +67,28 @@
       font-size: 0.95rem;
       opacity: 0.82;
     }
+    .favicon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .favicon-item {
+      border: 1px solid rgba(127, 127, 127, 0.26);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+    }
+    .favicon-stage {
+      min-height: 96px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 12px;
+    }
+    .favicon-stage img {
+      width: auto;
+      max-height: none;
+    }
     img {
       width: 100%;
       height: auto;
@@ -78,8 +99,8 @@
 <body class="light">
   <div class="header">
     <div class="header-copy">
-      <h1>smartdict logo concepts</h1>
-      <p>Each direction keeps the braces readable as the dict cue, then changes the "smart" metaphor: spark, network, focus, or path resolution.</p>
+      <h1>smartdict logo preview</h1>
+      <p>A reduced wordmark using <strong>$</strong> as the leading s-shape, a lighter <strong>mart</strong>, and braces to keep the dict meaning obvious.</p>
     </div>
     <button type="button" onclick="document.body.classList.toggle('dark');document.body.classList.toggle('light');">Toggle theme</button>
   </div>
@@ -87,42 +108,40 @@
   <div class="grid">
     <div class="card">
       <div class="card-img">
-        <img src="./concepts/concept-1.svg" alt="concept 1" />
+        <img src="./iterations/iteration-1.svg" alt="iteration 1" />
       </div>
       <div class="card-copy">
-        <h2>concept-1</h2>
-        <p>Braces plus a centered spark: the clearest "smart dict" read, with a friendly badge feel.</p>
+        <h2>iteration-1</h2>
+        <p>The mark is now just the name itself: <strong>$mart{}</strong>. No extra symbol, only a cleaner read where <strong>$</strong> carries the "smart" twist and <strong>{}</strong> carries the "dict" cue.</p>
       </div>
     </div>
+  </div>
 
-    <div class="card">
-      <div class="card-img">
-        <img src="./concepts/concept-2.svg" alt="concept 2" />
-      </div>
-      <div class="card-copy">
-        <h2>concept-2</h2>
-        <p>A node graph inside braces: more technical, better if you want the library to feel structured and programmable.</p>
-      </div>
+  <div class="header" style="margin-top: 28px; margin-bottom: 18px;">
+    <div class="header-copy">
+      <h1>Favicon Size Check</h1>
+      <p>This direction is intentionally wordmark-first, so the small-size check helps verify whether the braces stay readable.</p>
     </div>
+  </div>
 
-    <div class="card">
-      <div class="card-img">
-        <img src="./concepts/concept-3.svg" alt="concept 3" />
+  <div class="favicon-grid">
+    <div class="favicon-item">
+      <div class="favicon-stage">
+        <img src="./iterations/iteration-1.svg" alt="iteration 1 at 64px" style="height:64px;" />
       </div>
-      <div class="card-copy">
-        <h2>concept-3</h2>
-        <p>Focused target with a signal point: emphasizes precise lookup and resolution rather than transformation.</p>
-      </div>
+      <div>64 px</div>
     </div>
-
-    <div class="card">
-      <div class="card-img">
-        <img src="./concepts/concept-4.svg" alt="concept 4" />
+    <div class="favicon-item">
+      <div class="favicon-stage">
+        <img src="./iterations/iteration-1.svg" alt="iteration 1 at 32px" style="height:32px;" />
       </div>
-      <div class="card-copy">
-        <h2>concept-4</h2>
-        <p>Directional path and arrow: leans into defaults, pipelines, and moving values through a config graph.</p>
+      <div>32 px</div>
+    </div>
+    <div class="favicon-item">
+      <div class="favicon-stage">
+        <img src="./iterations/iteration-1.svg" alt="iteration 1 at 16px" style="height:16px;" />
       </div>
+      <div>16 px</div>
     </div>
   </div>
 </body>
