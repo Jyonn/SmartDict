@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/logo.svg" alt="smartdict" width="320">
+  <img src="./assets/logo.png" alt="smartdict" width="360">
 </p>
 
 # smartdict
