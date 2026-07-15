@@ -89,6 +89,9 @@ class SmartDict:
         iter_src = self._src
         component_value = None  # type: Optional[ComponentWithValue]
         for _ in range(self._iterations):
+            # Each iterative pass should resolve against the latest expanded
+            # snapshot so newly generated keys become visible on the next round.
+            self._src = iter_src
             self._cache.clear()
             component_value = self.deep_resolve(iter_src)
             iter_src = component_value.final
