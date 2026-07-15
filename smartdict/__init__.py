@@ -9,7 +9,7 @@ from smartdict.smartdict import (
 )
 from smartdict.path import Path
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 __all__ = [
     "parse",
