@@ -1,9 +1,13 @@
-# SmartDict
+<p align="center">
+  <img src="./assets/logo.svg" alt="smartdict" width="320">
+</p>
+
+# smartdict
 
 `smartdict` is a small Python library for resolving references inside nested data structures.
 It is especially useful for configuration dictionaries where one field needs to reuse another.
 
-SmartDict walks through built-in `dict`, `list`, and `tuple` containers, finds reference
+smartdict walks through built-in `dict`, `list`, and `tuple` containers, finds reference
 expressions inside strings, and replaces them with resolved values.
 
 ## Features
@@ -24,6 +28,12 @@ expressions inside strings, and replaces them with resolved values.
 ```bash
 pip install smartdict
 ```
+
+## Ecosystem
+
+- `smartdict-python`: the Python package in this repository
+- `smartdict-js`: the JavaScript/browser port at [Jyonn/smartdict-js](https://github.com/Jyonn/smartdict-js)
+- `smartdict-handbook`: the multi-page docs site and live playground at [Jyonn/smartdict-handbook](https://github.com/Jyonn/smartdict-handbook)
 
 ## Quick Start
 
@@ -75,9 +85,9 @@ print(parsed["message"])
 # hello-smartdict
 ```
 
-When `${...}` is part of a larger string, SmartDict performs string interpolation.
+When `${...}` is part of a larger string, smartdict performs string interpolation.
 
-When the whole value is a single reference, SmartDict preserves the referenced value type:
+When the whole value is a single reference, smartdict preserves the referenced value type:
 
 ```python
 import smartdict
@@ -202,7 +212,7 @@ print(parsed["metadata"])
 # {'hello': 'world'}
 ```
 
-If the primary value already exists, SmartDict keeps that value and ignores the default:
+If the primary value already exists, smartdict keeps that value and ignores the default:
 
 ```python
 import smartdict
@@ -218,7 +228,7 @@ print(parsed["sinkhorn_epsilon"])
 
 ### 5. Pipelines
 
-SmartDict also supports simple pipelines:
+smartdict also supports simple pipelines:
 
 ```python
 import smartdict
@@ -265,7 +275,7 @@ parsed = smartdict.parse({
 })
 ```
 
-If a pipeline stage fails, SmartDict raises `PipelineStageError`.
+If a pipeline stage fails, smartdict raises `PipelineStageError`.
 
 ### 6. List and tuple indices
 
@@ -306,7 +316,7 @@ print(parsed)
 
 ### 8. Referencing custom objects
 
-SmartDict resolves path components in this order:
+smartdict resolves path components in this order:
 
 1. `obj[key]`
 2. `getattr(obj, key)`
@@ -528,12 +538,12 @@ python -m build
 
 ## Notes and Current Behavior
 
-- SmartDict recursively parses built-in `dict`, `list`, `tuple`, and `str` values.
+- smartdict recursively parses built-in `dict`, `list`, `tuple`, and `str` values.
 - Intermediate path components can be aliases, including full-match references such as `${config}$`.
 - In strict mode, unresolved references raise `ReferenceNotFoundError`.
 - `ReferenceNotFoundError.unresolved` contains structured unresolved entries with `path` and `reference`.
 - `iterations` must be greater than `0`.
-- If resolved dictionary keys collide, SmartDict raises `KeyError`.
+- If resolved dictionary keys collide, smartdict raises `KeyError`.
 
 ## License
 
