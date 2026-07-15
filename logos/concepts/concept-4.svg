@@ -1,0 +1,17 @@
+<svg viewBox="0 0 1024 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">smartdict concept 4</title>
+  <desc id="desc">Directional path with braces and a decisive arrow to suggest transformation pipelines.</desc>
+  <g id="icon">
+    <circle cx="204" cy="246" r="128" fill="#FCFAF4"/>
+    <path d="M122 150C98 150 84 166 84 192V208C84 224 74 238 56 246C74 254 84 268 84 284V300C84 326 98 342 122 342H146V304H134C126 304 122 300 122 292V274C122 255 112 246 96 246C112 246 122 237 122 218V200C122 192 126 188 134 188H146V150H122Z" fill="#0F766E"/>
+    <path d="M286 150H262V188H274C282 188 286 192 286 200V218C286 237 296 246 312 246C296 246 286 255 286 274V292C286 300 282 304 274 304H262V342H286C310 342 324 326 324 300V284C324 268 334 254 352 246C334 238 324 224 324 208V192C324 166 310 150 286 150Z" fill="#0F766E"/>
+    <path d="M150 286C150 250 178 222 214 222H252L228 198L246 180L300 234L246 288L228 270L252 246H214C192 246 174 264 174 286V308H150V286Z" fill="#201814"/>
+    <circle cx="170" cy="188" r="18" fill="#B0632C"/>
+    <circle cx="170" cy="324" r="18" fill="#F4C95D"/>
+    <path d="M170 206V306" stroke="#B0632C" stroke-width="12" stroke-linecap="round" stroke-dasharray="8 18"/>
+  </g>
+  <g id="wordmark">
+    <text x="386" y="280" fill="#201814" font-family="Helvetica, Arial, sans-serif" font-size="150" font-weight="700" letter-spacing="-5">smartdict</text>
+    <text x="390" y="338" fill="#0F766E" font-family="Helvetica, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="3">DEFAULTS, PATHS, PIPELINES</text>
+  </g>
+</svg>

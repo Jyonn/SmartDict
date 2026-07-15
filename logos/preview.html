@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smartdict logo preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 32px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    body.light { background: #f5f0e8; color: #201814; }
+    body.dark { background: #171311; color: #f8f2e8; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .header-copy p {
+      margin-top: 10px;
+      max-width: 760px;
+      line-height: 1.6;
+      color: inherit;
+      opacity: 0.82;
+    }
+    button {
+      border: 1px solid rgba(127, 127, 127, 0.35);
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      border: 1px solid rgba(127, 127, 127, 0.26);
+      border-radius: 18px;
+      overflow: hidden;
+      backdrop-filter: blur(8px);
+    }
+    .card-img {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+      padding: 28px;
+    }
+    body.light .card-img { background: rgba(255, 255, 255, 0.72); }
+    body.dark .card-img { background: rgba(255, 255, 255, 0.06); }
+    .card-copy {
+      padding: 18px 20px 22px;
+      line-height: 1.5;
+    }
+    .card-copy h2 {
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+    .card-copy p {
+      font-size: 0.95rem;
+      opacity: 0.82;
+    }
+    img {
+      width: 100%;
+      height: auto;
+      max-height: 210px;
+    }
+  </style>
+</head>
+<body class="light">
+  <div class="header">
+    <div class="header-copy">
+      <h1>smartdict logo concepts</h1>
+      <p>Each direction keeps the braces readable as the dict cue, then changes the "smart" metaphor: spark, network, focus, or path resolution.</p>
+    </div>
+    <button type="button" onclick="document.body.classList.toggle('dark');document.body.classList.toggle('light');">Toggle theme</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-img">
+        <img src="./concepts/concept-1.svg" alt="concept 1" />
+      </div>
+      <div class="card-copy">
+        <h2>concept-1</h2>
+        <p>Braces plus a centered spark: the clearest "smart dict" read, with a friendly badge feel.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-img">
+        <img src="./concepts/concept-2.svg" alt="concept 2" />
+      </div>
+      <div class="card-copy">
+        <h2>concept-2</h2>
+        <p>A node graph inside braces: more technical, better if you want the library to feel structured and programmable.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-img">
+        <img src="./concepts/concept-3.svg" alt="concept 3" />
+      </div>
+      <div class="card-copy">
+        <h2>concept-3</h2>
+        <p>Focused target with a signal point: emphasizes precise lookup and resolution rather than transformation.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-img">
+        <img src="./concepts/concept-4.svg" alt="concept 4" />
+      </div>
+      <div class="card-copy">
+        <h2>concept-4</h2>
+        <p>Directional path and arrow: leans into defaults, pipelines, and moving values through a config graph.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

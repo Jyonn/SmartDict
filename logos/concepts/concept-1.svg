@@ -1,0 +1,16 @@
+<svg viewBox="0 0 1024 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">smartdict concept 1</title>
+  <desc id="desc">Rounded badge with braces framing a spark to suggest a smart dictionary.</desc>
+  <g id="icon">
+    <rect x="76" y="92" width="248" height="248" rx="60" fill="#FCFAF4"/>
+    <rect x="88" y="104" width="224" height="224" rx="52" fill="#0F766E"/>
+    <path d="M156 150C133 150 120 164 120 187V205C120 220 112 233 96 239C112 245 120 258 120 273V291C120 314 133 328 156 328H170V294H160C153 294 148 289 148 281V266C148 249 141 241 128 239C141 237 148 229 148 212V197C148 189 153 184 160 184H170V150H156Z" fill="#FCFAF4"/>
+    <path d="M256 150H242V184H252C259 184 264 189 264 197V212C264 229 271 237 284 239C271 241 264 249 264 266V281C264 289 259 294 252 294H242V328H256C279 328 292 314 292 291V273C292 258 300 245 316 239C300 233 292 220 292 205V187C292 164 279 150 256 150Z" fill="#FCFAF4"/>
+    <path d="M206 168L224 208L266 190L248 231L288 239L248 247L266 288L224 270L206 310L198 266L156 282L184 247L148 223L194 216L206 168Z" fill="#F4C95D"/>
+    <circle cx="224" cy="239" r="18" fill="#FCFAF4"/>
+  </g>
+  <g id="wordmark">
+    <text x="390" y="292" fill="#201814" font-family="Helvetica, Arial, sans-serif" font-size="148" font-weight="700" letter-spacing="-3">smartdict</text>
+    <text x="394" y="338" fill="#64584D" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="600" letter-spacing="4">SMART REFERENCES FOR DICTS</text>
+  </g>
+</svg>

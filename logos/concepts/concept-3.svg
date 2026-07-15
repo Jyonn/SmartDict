@@ -1,0 +1,18 @@
+<svg viewBox="0 0 1024 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">smartdict concept 3</title>
+  <desc id="desc">Braces framing a focused target to suggest lookup, precision, and intelligence.</desc>
+  <g id="icon">
+    <rect x="86" y="102" width="236" height="236" rx="52" fill="#FCFAF4"/>
+    <path d="M148 150C122 150 108 166 108 191V209C108 226 99 239 82 246C99 253 108 266 108 283V301C108 326 122 342 148 342H171V304H158C150 304 145 299 145 291V274C145 256 137 247 123 246C137 245 145 236 145 218V201C145 193 150 188 158 188H171V150H148Z" fill="#201814"/>
+    <path d="M260 150H237V188H250C258 188 263 193 263 201V218C263 236 271 245 285 246C271 247 263 256 263 274V291C263 299 258 304 250 304H237V342H260C286 342 300 326 300 301V283C300 266 309 253 326 246C309 239 300 226 300 209V191C300 166 286 150 260 150Z" fill="#201814"/>
+    <circle cx="204" cy="246" r="60" fill="none" stroke="#0F766E" stroke-width="22"/>
+    <circle cx="204" cy="246" r="24" fill="#B0632C"/>
+    <path d="M204 122V162M328 246H288M204 370V330M80 246H120" stroke="#F4C95D" stroke-width="18" stroke-linecap="round"/>
+    <path d="M254 196L302 148" stroke="#0F766E" stroke-width="18" stroke-linecap="round"/>
+    <circle cx="324" cy="126" r="18" fill="#0F766E"/>
+  </g>
+  <g id="wordmark">
+    <text x="392" y="258" fill="#201814" font-family="Helvetica, Arial, sans-serif" font-size="142" font-weight="800" letter-spacing="-6">smartdict</text>
+    <text x="396" y="322" fill="#64584D" font-family="Helvetica, Arial, sans-serif" font-size="42" font-weight="500" letter-spacing="1">typed lookups, resolved cleanly</text>
+  </g>
+</svg>
