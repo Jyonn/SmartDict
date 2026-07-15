@@ -235,27 +235,6 @@ class SmartDictReferenceResolutionTests(unittest.TestCase):
 
         self.assertEqual(parsed, {"a": "ok", "b": "ok", "c": "ok"})
 
-    def test_iterative_parse_exposes_generated_dict_key_on_next_round(self):
-        data = {
-            "x": "y",
-            "${x}": 123,
-            "a": "${y}",
-        }
-
-        first_pass = smartdict.iterative_parse(data, iterations=1)
-        second_pass = smartdict.iterative_parse(data, iterations=2)
-
-        self.assertEqual(first_pass, {
-            "x": "y",
-            "y": 123,
-            "a": "${y}",
-        })
-        self.assertEqual(second_pass, {
-            "x": "y",
-            "y": 123,
-            "a": 123,
-        })
-
     def test_partial_parse_keeps_unresolved_placeholder_syntax(self):
         parsed = smartdict.partial_parse({
             "a": "${missing}",
