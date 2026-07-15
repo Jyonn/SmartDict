@@ -1,9 +1,0 @@
-<svg viewBox="0 0 1024 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">smartdict wordmark iteration 1</title>
-  <desc id="desc">Minimal smartdict wordmark rendered as dollar mart braces, with a lighter mart segment.</desc>
-  <g id="wordmark">
-    <text x="46" y="176" fill="#0F766E" font-family="Helvetica, Arial, sans-serif" font-size="174" font-weight="700">$</text>
-    <text x="138" y="176" fill="#7B9A95" font-family="Helvetica, Arial, sans-serif" font-size="154" font-weight="600" letter-spacing="-3">mart</text>
-    <text x="455" y="176" fill="#0F766E" font-family="Helvetica, Arial, sans-serif" font-size="170" font-weight="700" letter-spacing="-8">{}</text>
-  </g>
-</svg>
